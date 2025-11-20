@@ -166,4 +166,5 @@ async def on_ready():
     except Exception as e:
         print(e)
 
-bot.run(cfg["token"])
+from keep_alive import keep_alive
+keep_alive()

@@ -1,0 +1,1 @@
+Metti qui i comandi generati dal bot.

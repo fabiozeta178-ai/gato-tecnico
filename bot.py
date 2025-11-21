@@ -40,36 +40,56 @@ def load_dynamic():
                 file_path = f"commands/{cmd_name}.txt"
                 if not os.path.exists(file_path):
                     return await interaction.response.send_message("Comando non trovato!", ephemeral=True)
+
                 with open(file_path) as f:
                     try:
                         data = json.load(f)
 
-                        # Se è un webhook
+                        # ---------- WEBHOOK HANDLER (VERSIONE FIXATA) ----------
                         if "webhook_url" in data:
                             webhook = SyncWebhook.from_url(data["webhook_url"])
+
+                            raw_color = data.get("color", "#00FF00")
+
+                            # SAFE COLOR PARSER — accetta HEX e DECIMAL
+                            try:
+                                if isinstance(raw_color, str) and raw_color.startswith("#"):
+                                    color = int(raw_color.replace("#", ""), 16)
+                                else:
+                                    color = int(raw_color)
+                            except:
+                                color = 0x00FF00
 
                             embed = Embed(
                                 title=data.get("title", ""),
                                 description=data.get("description", ""),
-                                color=int(data.get("color", "0x00FF00").replace("#", ""), 16)
+                                color=color
                             )
 
                             if data.get("thumbnail"):
                                 embed.set_thumbnail(url=data["thumbnail"])
 
-                            # FIX per invio embed corretto
-                            webhook.send(embeds=[embed])
+                            # INVIO WEBHOOK
+                            try:
+                                webhook.send(embeds=[embed])
+                            except Exception as e:
+                                return await interaction.response.send_message(
+                                    f"Errore durante l'invio del webhook:\n```{e}```",
+                                    ephemeral=True
+                                )
 
                             channel = bot.get_channel(data["channel_id"])
-                            await interaction.response.send_message(
+                            return await interaction.response.send_message(
                                 f"Embed `{cmd_name}` inviato in {channel.mention}!",
                                 ephemeral=True
                             )
 
+                        # ---------- SE NON È WEBHOOK, INVIA TESTO ----------
                         else:
                             await interaction.response.send_message(data, ephemeral=True)
 
                     except Exception:
+                        # Se il file NON è JSON, invia il contenuto puro
                         f.seek(0)
                         await interaction.response.send_message(f.read(), ephemeral=True)
 
